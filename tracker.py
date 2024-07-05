@@ -116,8 +116,7 @@ else:
                                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
 
         cv2.imshow('YOLO V8 Detection', frame)
-        key = cv2.waitKey(1000)
-        if key & 0xFF == ord('q'):
+        if cv2.waitKey(10) & 0xFF == ord('q'):
             break
     video_capture.release()
     cv2.destroyAllWindows()
