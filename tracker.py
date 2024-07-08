@@ -1,11 +1,12 @@
 import cv2
 import os
-
 from object_detector import ObjectDetector
 from object_detector import get_center
 from object_detector import euclidean_distance
 from ultralytics.utils.plotting import Annotator  # ultralytics.yolo.utils.plotting is deprecated
 from kalman_filter import KalmanFilter
+from scipy.optimize import linear_sum_assignment
+import numpy as np
 
 video_capture = cv2.VideoCapture("traffic1.mp4")
 dt = 0.1
@@ -32,8 +33,9 @@ else:
 
     kf = {}
     track_id = 0
-    max_frames_to_keep = 10  # Number of frames to keep a track without updates
+    max_frames_to_keep = 20  # Number of frames to keep a track without updates
     track_frames = {}
+    max_distance_threshold = 50  # Max distance to consider a detection for reactivation
 
     while video_capture.isOpened():
         ret, frame = video_capture.read()
@@ -41,7 +43,7 @@ else:
         if not ret:
             break
 
-        car_boxes = detector.predict(frame, "car")
+        car_boxes = detector.predict(frame, ["car", "bus", "train", "truck"])
         if not car_boxes:
             pass
         else:
@@ -60,24 +62,25 @@ else:
             for tid in list(kf.keys()):
                 predicted_centers[tid] = kf[tid].predict()
 
-            # create an assignment matrix
+            # Create a cost matrix
+            cost_matrix = np.zeros((len(detected_centers), len(predicted_centers)))
+            for i, d_center in enumerate(detected_centers):
+                for j, (tid, p_center) in enumerate(predicted_centers.items()):
+                    cost_matrix[i, j] = euclidean_distance(d_center, p_center)
+
+            # Solve the assignment problem using the Hungarian algorithm
+            row_ind, col_ind = linear_sum_assignment(cost_matrix)
+
+            # Create assignments and unassigned detections
             assignments = []
             unassigned_detections = set(range(len(detected_centers)))
-            distance_threshold = 20
-            for d_id, d_center in enumerate(detected_centers):
-                best_tid = None
-                min_dist = float('inf')
-                for tid, p_center in predicted_centers.items():
-                    dist = euclidean_distance(d_center, p_center)
-                    if dist < min_dist and dist < distance_threshold:
-                        min_dist = dist
-                        best_tid = tid
-                if best_tid is not None:
-                    print("tid: ", best_tid)
-                    print("d_id: ", d_id)
+            assigned_tracks = set()
 
-                    assignments.append((best_tid, d_id))
-                    unassigned_detections.discard(d_id)
+            for i, j in zip(row_ind, col_ind):
+                if cost_matrix[i, j] < max_distance_threshold:  # Dynamic distance threshold
+                    assignments.append((list(predicted_centers.keys())[j], i))
+                    unassigned_detections.discard(i)
+                    assigned_tracks.add(list(predicted_centers.keys())[j])
 
             # Update existing tracks
             updated_tracks = set()
@@ -94,10 +97,20 @@ else:
 
             # Create new tracks for unassigned detections
             for d_id in unassigned_detections:
-                kf[track_id] = KalmanFilter(dt, u_x, u_y, std_acc, x_std_meas, y_std_meas)
-                kf[track_id].update(detected_centers[d_id])
-                track_frames[track_id] = 0
-                track_id += 1
+                # Try to match with inactive tracks first
+                matched = False
+                for tid, frame_count in track_frames.items():
+                    if frame_count > 0 and euclidean_distance(detected_centers[d_id], kf[tid].predict()) < max_distance_threshold:
+                        kf[tid].update(detected_centers[d_id])
+                        track_frames[tid] = 0
+                        matched = True
+                        break
+
+                if not matched:
+                    kf[track_id] = KalmanFilter(dt, u_x, u_y, std_acc, x_std_meas, y_std_meas)
+                    kf[track_id].update(detected_centers[d_id])
+                    track_frames[track_id] = 0
+                    track_id += 1
 
             # Handle missed tracks
             for tid in list(kf.keys()):
@@ -116,7 +129,8 @@ else:
                                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
 
         cv2.imshow('YOLO V8 Detection', frame)
-        if cv2.waitKey(10) & 0xFF == ord('q'):
+        key = cv2.waitKey(50)
+        if key & 0xFF == ord('q'):
             break
     video_capture.release()
     cv2.destroyAllWindows()
