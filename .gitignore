@@ -73,10 +73,11 @@ fabric.properties
 # Editor-based Rest Client
 .idea/httpRequests
 .idea/*
-__pycache__/*
+*/__pycache__/*
 images/*
 videos/*
 
 # Android studio 3.1+ serialized cache file
 .idea/caches/build_file_checksums.ser
 *.pt
+*.pyc
