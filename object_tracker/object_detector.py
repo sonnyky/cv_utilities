@@ -25,7 +25,7 @@ class ObjectDetector:
 
     def predict(self, image, object_name):
         # Run inference on the source
-        results = self.model(image, iou=0.8, conf=0.25)  # only process one image at a time, returns list of 1
+        results = self.model(image, iou=0.7, conf=0.3)  # only process one image at a time, returns list of 1
         target_object_boxes_list = []
 
         for result in results:
@@ -36,7 +36,5 @@ class ObjectDetector:
             obb = result.obb  # Oriented boxes object for OBB outputs
 
             if boxes is not None:
-                for box in boxes:
-                    if self.names[int(box.cls)] == object_name:
-                        target_object_boxes_list.append(box.xyxy)
-        return target_object_boxes_list
+                return boxes, results
+        return target_object_boxes_list, results
