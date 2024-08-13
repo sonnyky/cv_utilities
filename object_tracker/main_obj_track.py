@@ -51,6 +51,7 @@ else:
             update_args = {"boxes": torch.as_tensor(tracks[:, :-1])}
             results[0].update(**update_args)
         annotated_frame = results[0].plot()
+        annotated_frame = cv2.resize(annotated_frame, (800, 480))
         cv2.imshow('Car tracker', annotated_frame)
         key = cv2.waitKey(50)
         if key & 0xFF == ord('q'):
