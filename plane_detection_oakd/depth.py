@@ -73,7 +73,20 @@ right.setFps(fps)
 stereo.setDefaultProfilePreset(dai.node.StereoDepth.PresetMode.HIGH_DENSITY)
 # LR-check is required for depth alignment
 stereo.setLeftRightCheck(True)
+stereo.setSubpixel(False)
 stereo.setDepthAlign(rgbCamSocket)
+
+config = stereo.initialConfig.get()
+config.postProcessing.speckleFilter.enable = False
+config.postProcessing.speckleFilter.speckleRange = 50
+config.postProcessing.temporalFilter.enable = True
+config.postProcessing.spatialFilter.enable = True
+config.postProcessing.spatialFilter.holeFillingRadius = 2
+config.postProcessing.spatialFilter.numIterations = 1
+config.postProcessing.thresholdFilter.minRange = 400
+config.postProcessing.thresholdFilter.maxRange = 15000
+config.postProcessing.decimationFilter.decimationFactor = 1
+stereo.initialConfig.set(config)
 
 # Linking
 camRgb.video.link(rgbOut.input)
