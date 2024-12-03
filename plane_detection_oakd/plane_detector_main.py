@@ -20,10 +20,16 @@ with device:
     spatialCalcQueue = device.getOutputQueue(name="spatialData", maxSize=4, blocking=False)
     spatialCalcConfigInQueue = device.getInputQueue("spatialCalcConfig")
 
+    qRgb = device.getOutputQueue(name="rgb_stream", maxSize=4, blocking=False)
+
     while True:
         inDepth = depthQueue.get()  # Blocking call, will wait until a new data has arrived
 
         depthFrame = inDepth.getFrame()  # depthFrame values are in millimeters
+
+        rgbData = qRgb.get()
+        rgbFrame = rgbData.getCvFrame()
+        cv2.imshow("rgb", rgbFrame)
 
         depth_downscaled = depthFrame[::4]
         if np.all(depth_downscaled == 0):

@@ -65,7 +65,7 @@ class CameraDevice:
     def linking(self):
         self.monoLeft.out.link(self.stereo.left)
         self.monoRight.out.link(self.stereo.right)
-        self.rgb.video.link(self.rgbOut.input)
+        self.rgb.preview.link(self.rgbOut.input)
 
         self.spatialLocationCalculator.passthroughDepth.link(self.xoutDepth.input)
         self.stereo.depth.link(self.spatialLocationCalculator.inputDepth)
