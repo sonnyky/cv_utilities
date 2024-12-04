@@ -2,6 +2,7 @@ from cam_setup import CameraDevice
 import depthai as dai
 import cv2
 import numpy as np
+import utils
 
 device = dai.Device()
 calibData = device.readCalibration()
@@ -12,6 +13,23 @@ camSetup.linking()
 pipeline = camSetup.get_pipeline()
 
 color = (255, 255, 255)
+
+projected_calib_image = cv2.imread('./image/red.jpg')
+if projected_calib_image is None:
+    print("Failed to load image. Check the path.")
+
+# Create a named window
+window_name = "Second Screen Fullscreen Display"
+cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
+
+# Move the window to the second screen
+cv2.moveWindow(window_name, 1920, 0)
+
+# Set the window to fullscreen
+cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+
+# Show the image
+cv2.imshow(window_name, projected_calib_image)
 
 with device:
     device.startPipeline(pipeline)
@@ -29,7 +47,15 @@ with device:
 
         rgbData = qRgb.get()
         rgbFrame = rgbData.getCvFrame()
+
+        corners = utils.detectCorners(rgbFrame)
+        if corners:
+            # Draw the rectangle on the image for visualization
+            for point in corners:
+                cv2.circle(rgbFrame, tuple(point), 5, (0, 255, 0), -1)
+
         cv2.imshow("rgb", rgbFrame)
+
 
         depth_downscaled = depthFrame[::4]
         if np.all(depth_downscaled == 0):
@@ -66,3 +92,4 @@ with device:
         key = cv2.waitKey(1)
         if key == ord('q'):
             break
+cv2.destroyAllWindows()

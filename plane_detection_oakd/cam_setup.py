@@ -29,6 +29,7 @@ class CameraDevice:
         self.rgbCamSocket = dai.CameraBoardSocket.CAM_A
         self.rgb.setBoardSocket(self.rgbCamSocket)
         self.rgb.setResolution(dai.ColorCameraProperties.SensorResolution.THE_1080_P)
+        self.rgb.setPreviewSize(1920,1080)
         self.rgb.setFps(30)
 
         self.stereo.setDefaultProfilePreset(dai.node.StereoDepth.PresetMode.HIGH_DENSITY)

@@ -22,3 +22,34 @@ def displayFrame(name, frame, detections):
         cv2.rectangle(frame, (bbox[0], bbox[1]), (bbox[2], bbox[3]), color, 2)
     # Show the frame
     cv2.imshow(name, frame)
+
+
+def detectCorners(image):
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+    # Apply Gaussian blur to reduce noise
+    blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+
+    # Apply Canny edge detection
+    edges = cv2.Canny(blurred, 50, 150)
+
+    # Find contours in the edge-detected image
+    contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    if not contours:
+        return None  # No contours found
+
+    # Find the largest contour by area
+    largest_contour = max(contours, key=cv2.contourArea)
+
+    # Approximate the contour to a polygon
+    epsilon = 0.02 * cv2.arcLength(largest_contour, True)
+    approx = cv2.approxPolyDP(largest_contour, epsilon, True)
+
+    # Check if the approximated polygon has 4 vertices
+    if len(approx) == 4:
+        # Return the 4 corners as a list of points
+        corners = [point[0] for point in approx]
+        return corners
+    else:
+        return None  # No rectangle found
